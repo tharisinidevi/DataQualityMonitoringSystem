@@ -322,17 +322,6 @@ elif st.session_state.page == "Anomaly":
             numeric_columns
         )
 
-        # Z-score code
-
-        # Isolation Forest code
-
-    else:
-        st.warning("No numeric columns available.")
-
-        # ----------------------------------------------
-        # Z-SCORE DETECTION
-        # ----------------------------------------------
-
         st.subheader("Z-Score Detection")
 
         temp_df = df.copy()
@@ -342,29 +331,16 @@ elif st.session_state.page == "Anomaly":
             errors="coerce"
         )
 
-        temp_df = temp_df.dropna(
-            subset=[selected_column]
-        )
+        temp_df = temp_df.dropna(subset=[selected_column])
 
-        temp_df["Z_Score"] = zscore(
-            temp_df[selected_column]
-        )
+        temp_df["Z_Score"] = zscore(temp_df[selected_column])
 
         zscore_anomalies = temp_df[
             abs(temp_df["Z_Score"]) > 3
         ]
 
-        st.write(
-            f"Anomalies Detected: {len(zscore_anomalies)}"
-        )
-
-        st.dataframe(
-            zscore_anomalies
-        )
-
-        # ----------------------------------------------
-        # ISOLATION FOREST
-        # ----------------------------------------------
+        st.write(f"Anomalies Detected: {len(zscore_anomalies)}")
+        st.dataframe(zscore_anomalies)
 
         st.subheader("Isolation Forest Detection")
 
@@ -381,19 +357,11 @@ elif st.session_state.page == "Anomaly":
             temp_df["Anomaly"] == -1
         ]
 
-        st.write(
-            f"Anomalies Detected: {len(isolation_anomalies)}"
-        )
-
-        st.dataframe(
-            isolation_anomalies
-        )
+        st.write(f"Anomalies Detected: {len(isolation_anomalies)}")
+        st.dataframe(isolation_anomalies)
 
     else:
-
-        st.warning(
-            "No numeric columns available for anomaly detection."
-        )
+        st.warning("No numeric columns available for anomaly detection.")
 
 elif st.session_state.page == "Structure":
 
@@ -411,7 +379,8 @@ elif st.session_state.page == "Report":
 
     st.header("📥 Download Report")
 
-    csv = validation_df.to_csv(index=False)
+elif st.session_state.page == "Validation":
+    validation_df = df.copy()
 
     st.download_button(
         label="Download Dataset",
