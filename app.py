@@ -30,6 +30,48 @@ This system monitors financial transaction datasets by performing:
 - Z-Score Anomaly Detection
 - Isolation Forest Anomaly Detection
 """)
+# --------------------------------------------------
+# NAVIGATION
+# --------------------------------------------------
+
+if "page" not in st.session_state:
+    st.session_state.page = "Home"
+
+c1, c2, c3, c4, c5, c6, c7, c8 = st.columns(8)
+
+with c1:
+    if st.button("🏠 Home", use_container_width=True):
+        st.session_state.page = "Home"
+
+with c2:
+    if st.button("📊 Profiling", use_container_width=True):
+        st.session_state.page = "Profiling"
+
+with c3:
+    if st.button("🔍 Missing", use_container_width=True):
+        st.session_state.page = "Missing"
+
+with c4:
+    if st.button("📑 Duplicates", use_container_width=True):
+        st.session_state.page = "Duplicates"
+
+with c5:
+    if st.button("✅ Validation", use_container_width=True):
+        st.session_state.page = "Validation"
+
+with c6:
+    if st.button("🤖 Anomaly", use_container_width=True):
+        st.session_state.page = "Anomaly"
+
+with c7:
+    if st.button("📈 Structure", use_container_width=True):
+        st.session_state.page = "Structure"
+
+with c8:
+    if st.button("📥 Report", use_container_width=True):
+        st.session_state.page = "Report"
+
+st.divider()
 
 # --------------------------------------------------
 # FILE UPLOAD
@@ -40,29 +82,27 @@ uploaded_file = st.file_uploader(
     type=["csv"]
 )
 
-if uploaded_file is not None:
+if st.session_state.page == "Home":
 
-    # --------------------------------------------------
-    # LOAD DATA
-    # --------------------------------------------------
+    st.header("🏠 Home")
 
-    df = pd.read_csv(uploaded_file)
+    st.markdown("""
+    Welcome to the Intelligent Data Quality Monitoring System.
 
-    st.success("Dataset uploaded successfully.")
+    This system performs:
 
-    # --------------------------------------------------
-    # DATASET PREVIEW
-    # --------------------------------------------------
+    - Data Profiling
+    - Missing Value Detection
+    - Duplicate Detection
+    - Data Validation
+    - Anomaly Detection
+    - Quality Scoring
+    """)
 
-    st.header("📄 Dataset Preview")
+elif st.session_state.page == "Profiling":
 
-    st.dataframe(df.head())
+    st.header("📊 Data Profiling")
 
-    # --------------------------------------------------
-    # DATA PROFILING
-    # --------------------------------------------------
-
-    st.header("📌 Data Profiling")
 
     total_records = df.shape[0]
     total_columns = df.shape[1]
@@ -104,24 +144,7 @@ if uploaded_file is not None:
         f"{quality_score:.2f}%"
     )
 
-    # --------------------------------------------------
-    # DATA QUALITY STATUS
-    # --------------------------------------------------
-
-    st.header("🟢 Data Quality Status")
-
-    if quality_score >= 95:
-        st.success("Excellent Data Quality")
-
-    elif quality_score >= 85:
-        st.warning("Moderate Data Quality")
-
-    else:
-        st.error("Poor Data Quality")
-
-    # --------------------------------------------------
-    # MISSING VALUE REPORT
-    # --------------------------------------------------
+elif st.session_state.page == "Missing":
 
     st.header("🔍 Missing Value Analysis")
 
@@ -132,132 +155,26 @@ if uploaded_file is not None:
 
     st.dataframe(missing_report)
 
-    # --------------------------------------------------
-    # DUPLICATE RECORD ANALYSIS
-    # --------------------------------------------------
+elif st.session_state.page == "Duplicates":
 
-    st.header("📑 Duplicate Record Analysis")
+    st.header("📑 Duplicate Records")
 
-    st.write(
-        f"Total Duplicate Records Found: {duplicate_records}"
-    )
+    duplicate_records = df.duplicated().sum()
+
+    st.metric("Duplicate Records", duplicate_records)
 
     if duplicate_records > 0:
-
-        st.dataframe(
-            df[df.duplicated()]
-        )
-
-    # --------------------------------------------------
-    # NUMERIC COLUMN DETECTION
-    # --------------------------------------------------
-
-    numeric_columns = df.select_dtypes(
-        include=np.number
-    ).columns.tolist()
-
-    # --------------------------------------------------
-    # SELECT COLUMN FOR ANOMALY DETECTION
-    # --------------------------------------------------
-
-    if len(numeric_columns) > 0:
-
-        st.header("🤖 Anomaly Detection")
-
-        selected_column = st.selectbox(
-            "Select Numeric Column",
-            numeric_columns
-        )
-
-        # ----------------------------------------------
-        # Z-SCORE DETECTION
-        # ----------------------------------------------
-
-        st.subheader("Z-Score Detection")
-
-        temp_df = df.copy()
-
-        temp_df[selected_column] = pd.to_numeric(
-            temp_df[selected_column],
-            errors="coerce"
-        )
-
-        temp_df = temp_df.dropna(
-            subset=[selected_column]
-        )
-
-        temp_df["Z_Score"] = zscore(
-            temp_df[selected_column]
-        )
-
-        zscore_anomalies = temp_df[
-            abs(temp_df["Z_Score"]) > 3
-        ]
-
-        st.write(
-            f"Anomalies Detected: {len(zscore_anomalies)}"
-        )
-
-        st.dataframe(
-            zscore_anomalies
-        )
-
-        # ----------------------------------------------
-        # ISOLATION FOREST
-        # ----------------------------------------------
-
-        st.subheader("Isolation Forest Detection")
-
-        model = IsolationForest(
-            contamination=0.02,
-            random_state=42
-        )
-
-        temp_df["Anomaly"] = model.fit_predict(
-            temp_df[[selected_column]]
-        )
-
-        isolation_anomalies = temp_df[
-            temp_df["Anomaly"] == -1
-        ]
-
-        st.write(
-            f"Anomalies Detected: {len(isolation_anomalies)}"
-        )
-
-        st.dataframe(
-            isolation_anomalies
-        )
-
+        st.dataframe(df[df.duplicated()])
     else:
+        st.success("No duplicate records found.")
 
-        st.warning(
-            "No numeric columns available for anomaly detection."
-        )
-
-    # --------------------------------------------------
-    # DATA TYPES
-    # --------------------------------------------------
-
-    st.header("📊 Data Structure")
-
-    structure_df = pd.DataFrame({
-        "Column Name": df.columns,
-        "Data Type": df.dtypes.astype(str)
-    })
-
-    st.dataframe(structure_df)
-
-
-
-
-    # --------------------------------------------------
-    # DATA VALIDATION
-    # --------------------------------------------------
+elif st.session_state.page == "Validation":
 
     st.header("✅ Data Validation")
 
-    validation_df = df.copy()
+    # Paste all your validation code here
+
+        validation_df = df.copy()
 
     # Convert amount columns to numeric
     amount_columns = [
@@ -388,12 +305,106 @@ if uploaded_file is not None:
             st.dataframe(invalid_balance)
         else:
             st.success("No negative balances found.")
+elif st.session_state.page == "Anomaly":
 
-    # --------------------------------------------------
-    # DOWNLOAD REPORT
-    # --------------------------------------------------
+    st.header("🤖 Anomaly Detection")
+ if len(numeric_columns) > 0:
 
-    st.header("⬇ Download Clean Dataset")
+             selected_column = st.selectbox(
+            "Select Numeric Column",
+            numeric_columns
+        )
+
+   elif st.session_state.page == "Anomaly":
+
+    st.header("🤖 Anomaly Detection")
+
+selected_column = st.selectbox(
+            "Select Numeric Column",
+            numeric_columns
+        )
+
+        # ----------------------------------------------
+        # Z-SCORE DETECTION
+        # ----------------------------------------------
+
+        st.subheader("Z-Score Detection")
+
+        temp_df = df.copy()
+
+        temp_df[selected_column] = pd.to_numeric(
+            temp_df[selected_column],
+            errors="coerce"
+        )
+
+        temp_df = temp_df.dropna(
+            subset=[selected_column]
+        )
+
+        temp_df["Z_Score"] = zscore(
+            temp_df[selected_column]
+        )
+
+        zscore_anomalies = temp_df[
+            abs(temp_df["Z_Score"]) > 3
+        ]
+
+        st.write(
+            f"Anomalies Detected: {len(zscore_anomalies)}"
+        )
+
+        st.dataframe(
+            zscore_anomalies
+        )
+
+        # ----------------------------------------------
+        # ISOLATION FOREST
+        # ----------------------------------------------
+
+        st.subheader("Isolation Forest Detection")
+
+        model = IsolationForest(
+            contamination=0.02,
+            random_state=42
+        )
+
+        temp_df["Anomaly"] = model.fit_predict(
+            temp_df[[selected_column]]
+        )
+
+        isolation_anomalies = temp_df[
+            temp_df["Anomaly"] == -1
+        ]
+
+        st.write(
+            f"Anomalies Detected: {len(isolation_anomalies)}"
+        )
+
+        st.dataframe(
+            isolation_anomalies
+        )
+
+    else:
+
+        st.warning(
+            "No numeric columns available for anomaly detection."
+        )
+
+elif st.session_state.page == "Structure":
+
+    st.header("📈 Data Structure")
+
+    structure_df = pd.DataFrame({
+        "Column Name": df.columns,
+        "Data Type": df.dtypes.astype(str)
+    })
+
+    st.dataframe(structure_df)
+
+
+elif st.session_state.page == "Report":
+
+    st.header("📥 Download Report")
 
     csv = validation_df.to_csv(index=False)
 
@@ -404,5 +415,3 @@ if uploaded_file is not None:
         mime="text/csv"
     )
 
- 
-    st.info("Please upload a CSV file to start analysis.")
