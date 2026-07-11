@@ -374,18 +374,47 @@ elif st.session_state.page == "Structure":
 
     st.dataframe(structure_df)
 
-
-elif st.session_state.page == "Report":
-
-    st.header("📥 Download Report")
-
 elif st.session_state.page == "Validation":
     validation_df = df.copy()
+    
+elif st.session_state.page == "Report":
+
+    st.header("📥 Data Quality Report")
+
+    total_records = df.shape[0]
+    total_columns = df.shape[1]
+    missing_values = df.isnull().sum().sum()
+    duplicate_records = df.duplicated().sum()
+
+    quality_score = (
+        ((total_records * total_columns) - missing_values)
+        / (total_records * total_columns)
+    ) * 100
+
+    report = pd.DataFrame({
+        "Metric": [
+            "Total Records",
+            "Total Columns",
+            "Missing Values",
+            "Duplicate Records",
+            "Data Quality Score"
+        ],
+        "Value": [
+            total_records,
+            total_columns,
+            missing_values,
+            duplicate_records,
+            f"{quality_score:.2f}%"
+        ]
+    })
+
+    st.dataframe(report)
+
+    csv = report.to_csv(index=False)
 
     st.download_button(
-        label="Download Dataset",
+        label="📥 Download Report",
         data=csv,
         file_name="data_quality_report.csv",
         mime="text/csv"
     )
-
