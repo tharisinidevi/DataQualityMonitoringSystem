@@ -76,12 +76,18 @@ st.divider()
 # --------------------------------------------------
 # FILE UPLOAD
 # --------------------------------------------------
-
 uploaded_file = st.file_uploader(
     "Upload Financial Transaction Dataset",
     type=["csv"]
 )
 
+if uploaded_file is None:
+    st.info("Please upload a CSV file.")
+    st.stop()
+
+df = pd.read_csv(uploaded_file)
+
+st.success("Dataset uploaded successfully.")
 if st.session_state.page == "Home":
 
     st.header("🏠 Home")
@@ -172,9 +178,7 @@ elif st.session_state.page == "Validation":
 
     st.header("✅ Data Validation")
 
-    # Paste all your validation code here
-
-        validation_df = df.copy()
+    validation_df = df.copy()
 
     # Convert amount columns to numeric
     amount_columns = [
@@ -308,21 +312,22 @@ elif st.session_state.page == "Validation":
 elif st.session_state.page == "Anomaly":
 
     st.header("🤖 Anomaly Detection")
- if len(numeric_columns) > 0:
 
-             selected_column = st.selectbox(
+    numeric_columns = df.select_dtypes(include=np.number).columns.tolist()
+
+    if len(numeric_columns) > 0:
+
+        selected_column = st.selectbox(
             "Select Numeric Column",
             numeric_columns
         )
 
-   elif st.session_state.page == "Anomaly":
+        # Z-score code
 
-    st.header("🤖 Anomaly Detection")
+        # Isolation Forest code
 
-selected_column = st.selectbox(
-            "Select Numeric Column",
-            numeric_columns
-        )
+    else:
+        st.warning("No numeric columns available.")
 
         # ----------------------------------------------
         # Z-SCORE DETECTION
