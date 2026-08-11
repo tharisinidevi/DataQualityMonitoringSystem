@@ -87,6 +87,35 @@ if uploaded_file is None:
 
 df = pd.read_csv(uploaded_file)
 
+# --------------------------------------------------
+# CONVERT FINANCIAL AMOUNT COLUMNS TO NUMERIC
+# --------------------------------------------------
+
+numeric_columns = [
+    "CHQ.NO.",
+    " WITHDRAWAL AMT ",
+    " DEPOSIT AMT ",
+    "BALANCE AMT"
+]
+
+for col in numeric_columns:
+
+    if col in df.columns:
+
+        df[col] = (
+            df[col]
+            .astype(str)
+            .str.replace(",", "", regex=False)
+            .str.strip()
+        )
+
+        df[col] = pd.to_numeric(
+            df[col],
+            errors="coerce"
+        )
+
+st.success("Dataset uploaded successfully.")
+
 st.success("Dataset uploaded successfully.")
 if st.session_state.page == "Home":
 
