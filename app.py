@@ -1,4 +1,4 @@
-```python
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -779,4 +779,3 @@ elif st.session_state.page == "Report":
         mime="text/csv"
 
     )
-```
