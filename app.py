@@ -23,7 +23,7 @@ st.set_page_config(
 # TITLE
 # =========================================================
 
-st.title("📊 Intelligent Data Quality Monitoring System")
+st.title("Data Quality Monitoring System")
 
 st.markdown("""
 This system monitors financial transaction datasets by performing:
