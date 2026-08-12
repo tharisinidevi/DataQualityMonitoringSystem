@@ -103,7 +103,9 @@ uploaded_file = st.file_uploader(
 
 if uploaded_file is None:
 
-    st.info("Please upload a CSV file to start the analysis.")
+    st.info(
+        "Please upload a CSV file to start the analysis."
+    )
 
     st.stop()
 
@@ -112,43 +114,128 @@ if uploaded_file is None:
 # LOAD DATASET
 # ==================================================
 
-df = pd.read_csv(uploaded_file)
+df = pd.read_csv(
+    uploaded_file
+)
 
 
 # ==================================================
-# AUTOMATIC NUMERIC DATA DETECTION
+# CLEAN COLUMN NAMES
+# ==================================================
+
+# Remove unnecessary spaces from column names.
+# This does not hardcode any column names.
+
+df.columns = (
+    df.columns
+    .astype(str)
+    .str.strip()
+)
+
+
+# ==================================================
+# AUTOMATIC DATA CLEANING
+# ==================================================
+
+# Replace empty strings and whitespace-only values
+# with NaN.
+
+df = df.replace(
+    r"^\s*$",
+    np.nan,
+    regex=True
+)
+
+
+# ==================================================
+# AUTOMATIC NUMERIC COLUMN DETECTION
 # ==================================================
 
 for col in df.columns:
 
-    # Only attempt conversion for columns currently
-    # stored as text/object
+    # Only attempt conversion for columns that are
+    # currently stored as text.
+
     if df[col].dtype == "object":
 
+        # Convert values to strings temporarily
         cleaned = (
             df[col]
             .astype(str)
-            .str.replace(",", "", regex=False)
             .str.strip()
-            .replace(
-                ["", "nan", "None"],
-                np.nan
-            )
         )
+
+        # Remove commas from numbers such as:
+        #
+        # 1,000,000.00
+        #
+        # so that they become:
+        #
+        # 1000000.00
+
+        cleaned = cleaned.str.replace(
+            ",",
+            "",
+            regex=False
+        )
+
+        # Convert possible numeric values
 
         converted = pd.to_numeric(
             cleaned,
             errors="coerce"
         )
 
-        # Convert the column only when numeric values
-        # are actually present
-        if converted.notna().sum() > 0:
+        # Count original non-empty values
+
+        original_non_empty = (
+            df[col]
+            .notna()
+            .sum()
+        )
+
+        # Count values successfully converted
+        # to numeric
+
+        converted_numeric = (
+            converted
+            .notna()
+            .sum()
+        )
+
+        # Avoid division by zero
+
+        if original_non_empty > 0:
+
+            numeric_ratio = (
+                converted_numeric
+                / original_non_empty
+            )
+
+        else:
+
+            numeric_ratio = 0
+
+
+        # --------------------------------------------------
+        # CONVERT COLUMN IF MOST VALUES ARE NUMERIC
+        # --------------------------------------------------
+
+        # A threshold of 50% is used because financial
+        # transaction columns may contain many blank cells.
+
+        if numeric_ratio >= 0.50:
 
             df[col] = converted
 
 
-st.success("Dataset uploaded successfully.")
+# ==================================================
+# UPLOAD SUCCESS MESSAGE
+# ==================================================
+
+st.success(
+    "Dataset uploaded successfully."
+)
 
 
 # ==================================================
@@ -164,15 +251,16 @@ if st.session_state.page == "Home":
 
     Welcome to the Intelligent Data Quality Monitoring System.
 
-    This system is designed to assess the quality of uploaded datasets
-    using several data quality techniques.
+    This system is designed to assess the quality of uploaded
+    datasets using several data quality techniques.
 
     ### Available Functions
 
     📊 **Data Profiling**
 
-    Provides an overview of the dataset including records, columns,
-    missing values, duplicates, and overall data quality score.
+    Provides an overview of the dataset including records,
+    columns, missing values, duplicates, and overall data
+    quality score.
 
     🔍 **Missing Value Analysis**
 
@@ -184,7 +272,7 @@ if st.session_state.page == "Home":
 
     ✅ **Data Validation**
 
-    Performs basic rule-based validation on the dataset.
+    Performs rule-based validation on the dataset.
 
     🤖 **Anomaly Detection**
 
@@ -209,21 +297,35 @@ elif st.session_state.page == "Profiling":
 
     st.header("📊 Data Profiling")
 
+
     total_records = df.shape[0]
 
     total_columns = df.shape[1]
 
-    missing_values = df.isnull().sum().sum()
+    missing_values = (
+        df.isnull()
+        .sum()
+        .sum()
+    )
 
-    duplicate_records = df.duplicated().sum()
+    duplicate_records = (
+        df.duplicated()
+        .sum()
+    )
 
-    total_cells = total_records * total_columns
+    total_cells = (
+        total_records
+        * total_columns
+    )
 
 
     if total_cells > 0:
 
         quality_score = (
-            (total_cells - missing_values)
+            (
+                total_cells
+                - missing_values
+            )
             / total_cells
         ) * 100
 
@@ -280,7 +382,9 @@ elif st.session_state.page == "Missing":
             df.columns,
 
         "Missing Values":
-            df.isnull().sum().values
+            df.isnull()
+            .sum()
+            .values
 
     })
 
@@ -300,7 +404,10 @@ elif st.session_state.page == "Duplicates":
     st.header("📑 Duplicate Records")
 
 
-    duplicate_records = df.duplicated().sum()
+    duplicate_records = (
+        df.duplicated()
+        .sum()
+    )
 
 
     st.metric(
@@ -335,19 +442,24 @@ elif st.session_state.page == "Validation":
     validation_df = df.copy()
 
 
-    # --------------------------------------------------
-    # NUMERIC VALIDATION
-    # --------------------------------------------------
+    # ==================================================
+    # NUMERICAL VALIDATION
+    # ==================================================
 
-    numeric_columns = validation_df.select_dtypes(
-        include=np.number
-    ).columns.tolist()
+    numeric_columns = (
+        validation_df
+        .select_dtypes(
+            include=np.number
+        )
+        .columns
+        .tolist()
+    )
 
 
     if len(numeric_columns) > 0:
 
         st.subheader(
-            "Numerical Value Validation"
+            "🔢 Numerical Value Validation"
         )
 
 
@@ -356,14 +468,18 @@ elif st.session_state.page == "Validation":
 
         for col in numeric_columns:
 
-            negative_count = (
-                validation_df[col] < 0
-            ).sum()
-
-
             missing_count = (
-                validation_df[col].isnull()
-            ).sum()
+                validation_df[col]
+                .isnull()
+                .sum()
+            )
+
+
+            negative_count = (
+                validation_df[col]
+                .lt(0)
+                .sum()
+            )
 
 
             validation_results.append({
@@ -392,7 +508,7 @@ elif st.session_state.page == "Validation":
 
 
         # --------------------------------------------------
-        # SHOW NEGATIVE VALUES
+        # DISPLAY NEGATIVE VALUES
         # --------------------------------------------------
 
         for col in numeric_columns:
@@ -408,6 +524,7 @@ elif st.session_state.page == "Validation":
                     f"Negative Values - {col}"
                 )
 
+
                 st.dataframe(
                     invalid_values,
                     use_container_width=True
@@ -421,23 +538,27 @@ elif st.session_state.page == "Validation":
         )
 
 
-    # --------------------------------------------------
+    # ==================================================
     # DATE VALIDATION
-    # --------------------------------------------------
+    # ==================================================
 
     st.subheader(
         "📅 Date Validation"
     )
 
 
-    date_columns = []
+    # Automatically identify columns that contain
+    # the word "date".
 
+    date_columns = [
 
-    for col in df.columns:
+        col
 
-        if "date" in col.lower():
+        for col in df.columns
 
-            date_columns.append(col)
+        if "date" in col.lower()
+
+    ]
 
 
     if len(date_columns) > 0:
@@ -454,8 +575,13 @@ elif st.session_state.page == "Validation":
 
 
             invalid_dates = (
+
                 converted_dates.isnull()
-                & df[col].notnull()
+
+                &
+
+                df[col].notnull()
+
             ).sum()
 
 
@@ -494,169 +620,196 @@ elif st.session_state.page == "Validation":
 
 elif st.session_state.page == "Anomaly":
 
-    st.header("🤖 Anomaly Detection")
+    st.header(
+        "🤖 Anomaly Detection"
+    )
 
 
-    # --------------------------------------------------
+    # ==================================================
     # AUTOMATIC NUMERIC COLUMN DETECTION
-    # --------------------------------------------------
-
-    numeric_columns = df.select_dtypes(
-        include=np.number
-    ).columns.tolist()
-
-
-    if len(numeric_columns) == 0:
-
-        st.warning(
-            "No numeric columns available for anomaly detection."
-        )
-
-        st.stop()
-
-
-    st.success(
-        f"{len(numeric_columns)} numeric column(s) detected."
-    )
-
-
-    st.write(
-        "Detected numeric columns:",
-        numeric_columns
-    )
-
-
-    # --------------------------------------------------
-    # SELECT NUMERIC COLUMN
-    # --------------------------------------------------
-
-    selected_column = st.selectbox(
-        "Select Numeric Column",
-        numeric_columns
-    )
-
-
-    # --------------------------------------------------
-    # PREPARE DATA
-    # --------------------------------------------------
-
-    temp_df = df.copy()
-
-
-    temp_df[selected_column] = pd.to_numeric(
-        temp_df[selected_column],
-        errors="coerce"
-    )
-
-
-    temp_df = temp_df.dropna(
-        subset=[selected_column]
-    )
-
-
-    # ==================================================
-    # Z-SCORE
     # ==================================================
 
-    st.subheader(
-        "📊 Z-Score Detection"
+    numeric_columns = (
+        df
+        .select_dtypes(
+            include=np.number
+        )
+        .columns
+        .tolist()
     )
 
 
-    if len(temp_df) < 2:
+    # --------------------------------------------------
+    # DISPLAY DETECTED NUMERIC COLUMNS
+    # --------------------------------------------------
 
-        st.warning(
-            "Not enough valid numerical data for Z-Score detection."
+    if len(numeric_columns) > 0:
+
+        st.success(
+            f"{len(numeric_columns)} "
+            f"numeric column(s) detected."
         )
-
-    else:
-
-        # Calculate Z-Score
-
-        temp_df["Z_Score"] = zscore(
-            temp_df[selected_column]
-        )
-
-
-        # Identify anomalies
-
-        zscore_anomalies = temp_df[
-            abs(temp_df["Z_Score"]) > 3
-        ]
 
 
         st.write(
-            f"Anomalies Detected: "
-            f"{len(zscore_anomalies)}"
+            "Detected numeric columns:"
         )
 
 
-        if len(zscore_anomalies) > 0:
+        st.write(
+            numeric_columns
+        )
 
-            st.dataframe(
-                zscore_anomalies,
-                use_container_width=True
+
+        # ==================================================
+        # SELECT NUMERIC COLUMN
+        # ==================================================
+
+        selected_column = st.selectbox(
+            "Select Numeric Column",
+            numeric_columns
+        )
+
+
+        # ==================================================
+        # PREPARE DATA
+        # ==================================================
+
+        temp_df = df.copy()
+
+
+        temp_df[selected_column] = pd.to_numeric(
+            temp_df[selected_column],
+            errors="coerce"
+        )
+
+
+        temp_df = temp_df.dropna(
+            subset=[
+                selected_column
+            ]
+        )
+
+
+        # ==================================================
+        # Z-SCORE DETECTION
+        # ==================================================
+
+        st.subheader(
+            "📊 Z-Score Detection"
+        )
+
+
+        if len(temp_df) < 2:
+
+            st.warning(
+                "Not enough valid numerical data "
+                "for Z-Score detection."
             )
 
         else:
 
-            st.success(
-                "No Z-Score anomalies detected."
+            # Calculate Z-Score
+
+            temp_df["Z_Score"] = zscore(
+                temp_df[selected_column]
             )
 
 
-    # ==================================================
-    # ISOLATION FOREST
-    # ==================================================
+            # Identify anomalies where the absolute
+            # Z-Score is greater than 3
 
-    st.subheader(
-        "🌲 Isolation Forest Detection"
-    )
+            zscore_anomalies = temp_df[
+                abs(
+                    temp_df["Z_Score"]
+                ) > 3
+            ]
 
 
-    if len(temp_df) < 10:
+            st.write(
+                f"Anomalies Detected: "
+                f"{len(zscore_anomalies)}"
+            )
 
-        st.warning(
-            "Not enough valid numerical data for "
-            "Isolation Forest detection."
+
+            if len(zscore_anomalies) > 0:
+
+                st.dataframe(
+                    zscore_anomalies,
+                    use_container_width=True
+                )
+
+            else:
+
+                st.success(
+                    "No Z-Score anomalies detected."
+                )
+
+
+        # ==================================================
+        # ISOLATION FOREST
+        # ==================================================
+
+        st.subheader(
+            "🌲 Isolation Forest Detection"
         )
 
-    else:
 
-        model = IsolationForest(
-            contamination=0.02,
-            random_state=42
-        )
+        if len(temp_df) < 10:
 
-
-        temp_df["Anomaly"] = model.fit_predict(
-            temp_df[[selected_column]]
-        )
-
-
-        isolation_anomalies = temp_df[
-            temp_df["Anomaly"] == -1
-        ]
-
-
-        st.write(
-            f"Anomalies Detected: "
-            f"{len(isolation_anomalies)}"
-        )
-
-
-        if len(isolation_anomalies) > 0:
-
-            st.dataframe(
-                isolation_anomalies,
-                use_container_width=True
+            st.warning(
+                "Not enough valid numerical data "
+                "for Isolation Forest detection."
             )
 
         else:
 
-            st.success(
-                "No Isolation Forest anomalies detected."
+            model = IsolationForest(
+                contamination=0.02,
+                random_state=42
             )
+
+
+            temp_df["Anomaly"] = (
+                model.fit_predict(
+                    temp_df[
+                        [selected_column]
+                    ]
+                )
+            )
+
+
+            isolation_anomalies = temp_df[
+                temp_df["Anomaly"] == -1
+            ]
+
+
+            st.write(
+                f"Anomalies Detected: "
+                f"{len(isolation_anomalies)}"
+            )
+
+
+            if len(isolation_anomalies) > 0:
+
+                st.dataframe(
+                    isolation_anomalies,
+                    use_container_width=True
+                )
+
+            else:
+
+                st.success(
+                    "No Isolation Forest anomalies detected."
+                )
+
+
+    else:
+
+        st.warning(
+            "No numeric columns available "
+            "for anomaly detection."
+        )
 
 
 # ==================================================
@@ -665,7 +818,9 @@ elif st.session_state.page == "Anomaly":
 
 elif st.session_state.page == "Structure":
 
-    st.header("📈 Data Structure")
+    st.header(
+        "📈 Data Structure"
+    )
 
 
     structure_df = pd.DataFrame({
@@ -691,27 +846,40 @@ elif st.session_state.page == "Structure":
 
 elif st.session_state.page == "Report":
 
-    st.header("📥 Data Quality Report")
+    st.header(
+        "📥 Data Quality Report"
+    )
 
 
     total_records = df.shape[0]
 
     total_columns = df.shape[1]
 
-    missing_values = df.isnull().sum().sum()
+    missing_values = (
+        df.isnull()
+        .sum()
+        .sum()
+    )
 
-    duplicate_records = df.duplicated().sum()
+    duplicate_records = (
+        df.duplicated()
+        .sum()
+    )
+
 
     total_cells = (
-        total_records *
-        total_columns
+        total_records
+        * total_columns
     )
 
 
     if total_cells > 0:
 
         quality_score = (
-            (total_cells - missing_values)
+            (
+                total_cells
+                - missing_values
+            )
             / total_cells
         ) * 100
 
@@ -742,9 +910,9 @@ elif st.session_state.page == "Report":
 
             total_columns,
 
-            missing_values,
+            int(missing_values),
 
-            duplicate_records,
+            int(duplicate_records),
 
             f"{quality_score:.2f}%"
 
@@ -759,9 +927,9 @@ elif st.session_state.page == "Report":
     )
 
 
-    # --------------------------------------------------
+    # ==================================================
     # DOWNLOAD REPORT
-    # --------------------------------------------------
+    # ==================================================
 
     csv = report.to_csv(
         index=False
